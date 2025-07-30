@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View } from "reshaped";
-import RenameButtons from "./RenameButtons.js";
+import RenameButtons from "../components/RenameButtons.js";
 
 interface MainPageProps {
   onNext: () => void;
@@ -107,7 +107,9 @@ export default function MainPage({ onNext }: MainPageProps) {
                           );
                         })()}
                         {renameTargetId === child.id && (
-                          <RenameButtons onRename={(name: any) => handleChildRename(child.id, name)} />
+                          <div style={{ width: "100%", marginTop: 4 }}>
+                            <RenameButtons onRename={(name: any) => handleChildRename(child.id, name)} nodeId={child.id} />
+                          </div>
                         )}
                       </li>
                     ))
