@@ -6,65 +6,84 @@ import { useState } from "react";
 import MainPage from "./pages/MainPage.js";
 import SecondPage from "./pages/SecondPage.js";
 
+const steps = [
+  { key: "main", label: "1. 요소 선택" },
+  { key: "second", label: "2. 이름 변경" },
+  { key: "result", label: "3. 결과 확인" },
+];
+
 const App = () => {
-  const [page, setPage] = useState<"main" | "second">("main");
+  const [step, setStep] = useState(0); // 0: main, 1: second, 2: result
+
+  // 각 단계별 완료 여부 (여기선 임시로 이전 단계 완료 시 true)
+  const [completed, setCompleted] = useState([true, false, false]);
+
+  // 단계별 페이지 컴포넌트
+  const renderStep = () => {
+    if (step === 0) return <MainPage onNext={() => {
+      setCompleted([true, true, false]);
+      setStep(1);
+    }} />;
+    if (step === 1) return <SecondPage onNext={() => {
+      setCompleted([true, true, true]);
+      setStep(2);
+    }} />;
+    return (
+      <div style={{ color: "#fff", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700 }}>
+        🎉 결과가 여기에 표시됩니다!
+      </div>
+    );
+  };
+
   return (
     <div style={{ width: 700, height: 1100, background: "#18181B", display: "flex", flexDirection: "column" }}>
-      {/* 네비게이션 바 */}
-      <nav
-        style={{
-          width: "100%",
-          height: 56,
-          background: "#23232A",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 32px",
-          borderBottom: "1px solid #333",
-          boxSizing: "border-box",
-          boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
-        }}
-      >
-        <div style={{ display: "flex", gap: 16 }}>
-          <button
-            onClick={() => setPage("main")}
-            style={{
-              background: page === "main" ? "#4ADE80" : "#23232A",
-              color: page === "main" ? "#18181B" : "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 15,
-              padding: "8px 20px",
-              cursor: "pointer",
-              transition: "background 0.2s",
-              boxShadow: page === "main" ? "0 2px 8px 0 rgba(76,222,128,0.15)" : "none",
-            }}
-          >
-            메인
-          </button>
-          <button
-            onClick={() => setPage("second")}
-            style={{
-              background: page === "second" ? "#4ADE80" : "#23232A",
-              color: page === "second" ? "#18181B" : "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 15,
-              padding: "8px 20px",
-              cursor: "pointer",
-              transition: "background 0.2s",
-              boxShadow: page === "second" ? "0 2px 8px 0 rgba(76,222,128,0.15)" : "none",
-            }}
-          >
-            두번째
-          </button>
-        </div>
-        <span style={{ color: "#aaa", fontWeight: 600, fontSize: 15, letterSpacing: 1 }}>Figma Plugin</span>
+      {/* 스텝 네비게이션 */}
+      <nav style={{
+        width: "100%",
+        height: 64,
+        background: "#23232A",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderBottom: "1px solid #333",
+        boxSizing: "border-box",
+        boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)",
+        gap: 0
+      }}>
+        {steps.map((s, idx) => (
+          <div key={s.key} style={{ display: "flex", alignItems: "center" }}>
+            <button
+              disabled={idx > 0 && !completed[idx]}
+              onClick={() => {
+                // completed[idx]가 true인 경우에만 이동
+                if (idx === 0 || completed[idx]) setStep(idx);
+              }}
+              style={{
+                background: step === idx ? "#4ADE80" : completed[idx] ? "#23232A" : "#23232A",
+                color: step === idx ? "#18181B" : completed[idx] ? "#fff" : "#888",
+                border: "none",
+                borderRadius: 16,
+                fontWeight: 700,
+                fontSize: 15,
+                padding: "10px 28px",
+                margin: "0 8px",
+                cursor: idx > 0 && !completed[idx] ? "not-allowed" : "pointer",
+                opacity: idx > 0 && !completed[idx] ? 0.5 : 1,
+                boxShadow: step === idx ? "0 2px 8px 0 rgba(76,222,128,0.15)" : "none",
+                borderBottom: step === idx ? "3px solid #4ADE80" : "none",
+                transition: "all 0.2s",
+              }}
+            >
+              {s.label}
+            </button>
+            {idx < steps.length - 1 && (
+              <span style={{ color: "#555", fontSize: 18, fontWeight: 700, margin: "0 2px" }}>→</span>
+            )}
+          </div>
+        ))}
       </nav>
       <div style={{ flex: 1, overflow: "auto" }}>
-        {page === "main" ? <MainPage onNext={() => setPage("second")} /> : <SecondPage />}
+        {renderStep()}
       </div>
     </div>
   );
