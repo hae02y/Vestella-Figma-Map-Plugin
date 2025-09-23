@@ -1,0 +1,49 @@
+.container {
+  width: 400px;
+  height: 600px;
+  background: #18181B;
+  display: flex;
+  box-shadow: 0 4px 24px 0 rgb(0 0 0 / 12%);
+  flex-direction: column;
+  align-items: center;
+}
+
+.inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  background: #23232A;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 10%);
+  color: #fff;
+  min-width: 240px;
+  text-align: center;
+  width: 340px;
+  max-width: 340px;
+}
+
+.title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 22px;
+  color: #fff;
+}
+
+.nextButton {
+  margin-top: 32px;
+  background: #4ADE80;
+  color: #18181B;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 12px 32px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px 0 rgb(76 222 128 / 15%);
+  transition: all 0.2s;
+}
