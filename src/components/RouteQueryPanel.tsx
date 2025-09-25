@@ -1,14 +1,7 @@
-// SVG 도면 내부 상대 중심점 좌표 계산 (부모(층) 기준 0,0 ~ width,height 범위)
-function getRelativeCenter(node: FigmaNode): { x: number; y: number } {
-  return {
-    x: (node.x ?? 0) + (node.width ?? 0) / 2,
-    y: (node.y ?? 0) + (node.height ?? 0) / 2,
-  };
-}
 import React, { useState } from "react";
-import VerifiedIcon from "../pages/VerifiedIcon";
+import VerifiedIcon from "../pages/VerifiedIcon.js";
 import styles from "../styles/SecondPage.module.css";
-
+// --- 리팩토링: 비콘 패널 스타일로 RouteQueryPanel 구현 ---
 type FigmaNode = {
   id: string;
   name: string;
@@ -21,126 +14,95 @@ type FigmaNode = {
   children?: FigmaNode[];
 };
 
-interface BeaconsQueryPanelProps {
+interface RouteQueryPanelProps {
   selected: FigmaNode | null;
   onFlash?: (ids: string[]) => void;
 }
 
-const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
-  // 비콘 id 리스트 추출
-  const getBeaconIds = () => {
-    if (!selected || !selected.children) return [];
-    const beaconsGroup = selected.children.find(
-      (child) => (child.type === "FRAME" || child.type === "GROUP") && child.name === "Beacons",
+function getRelativeCenter(node: FigmaNode): { x: number; y: number } {
+  return {
+    x: (node.x ?? 0) + (node.width ?? 0) / 2,
+    y: (node.y ?? 0) + (node.height ?? 0) / 2,
+  };
+}
+
+const todayPrefix = (() => {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yy}${mm}${dd}`;
+})();
+
+function makeRouteQueries(
+  node: FigmaNode | null,
+  prefix: string,
+  startCounter: number,
+  pklSeq: string,
+  pkfSeq: string,
+  spgSeq: string,
+  sptW: string,
+  sptH: string,
+): { route: string[]; spot: string[] } {
+  if (!node || !node.children) return { route: [], spot: [] };
+  const routeGroup = node.children.find(
+    (child) => (child.type === "FRAME" || child.type === "GROUP") && child.name === "Routes",
+  );
+  if (!routeGroup || !routeGroup.children) return { route: [], spot: [] };
+  let counter = startCounter;
+  const route: string[] = [];
+  const spot: string[] = [];
+  routeGroup.children.forEach((child) => {
+    const number = String(counter).padStart(7, "0");
+    const id = prefix + number;
+    counter++;
+    // tb_svp_route 쿼리
+    route.push(`INSERT INTO tb_svp_route (rot_seq, pkl_seq, pkf_seq) VALUES ('${id}', '${pklSeq}', '${pkfSeq}');`);
+    // tb_msv_spot 쿼리 (비콘과 동일)
+    const width = child.width ?? 0;
+    const height = child.height ?? 0;
+    const { x: cx, y: cy } = getRelativeCenter(child);
+    spot.push(
+      `INSERT INTO tb_msv_spot (spt_seq, spg_seq, ref_seq, spt_tp, spt_st, spt_w, spt_h, spt_rt, spt_pt, spt_ph, spt_pg, created, updated) VALUES ('${id.replace("ROT", "SPT")}', '${spgSeq}', '${id}', 'ROT', '01', ${width}, ${height}, 0, GEOMFROMTEXT('POINT(${cx} ${cy})'), NULL, NULL, NOW(), NOW());`,
     );
-    if (!beaconsGroup || !beaconsGroup.children) return [];
-    return beaconsGroup.children.map((child) => child.id);
+  });
+  return { route, spot };
+}
+
+const RouteQueryPanel = ({ selected, onFlash }: RouteQueryPanelProps) => {
+  const getRouteIds = () => {
+    if (!selected || !selected.children) return [];
+    const routeGroup = selected.children.find(
+      (child) => (child.type === "FRAME" || child.type === "GROUP") && child.name === "Route",
+    );
+    if (!routeGroup || !routeGroup.children) return [];
+    return routeGroup.children.map((child) => child.id);
   };
 
-  // 오늘 날짜 기반 prefix (예: BCN250925)
-  const today = (() => {
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-    return `${yy}${mm}${dd}`;
-  })();
-  // 비콘데이터 입력값 상태
-  const [prefix, setPrefix] = useState(`BCN${today}`);
+  const [prefix, setPrefix] = useState(`ROT${todayPrefix}`);
   const [startCounter, setStartCounter] = useState(1);
-  const [pklSeq, setPklSeq] = useState(`PKL${today}`);
-  const [pkfSeq, setPkfSeq] = useState(`PKF${today}`);
-  const [spgSeq, setSpgSeq] = useState(`SPG${today}`);
-  const [bcnBattery, setBcnBattery] = useState(100);
-  const [posFl, setPosFl] = useState("Y");
-  const [bcnTp, setBcnTp] = useState("01");
+  const [pklSeq, setPklSeq] = useState(`PKL${todayPrefix}`);
+  const [pkfSeq, setPkfSeq] = useState(`PKF${todayPrefix}`);
+  const [spgSeq, setSpgSeq] = useState(`SPG${todayPrefix}`);
   const [sptW, setSptW] = useState("64");
   const [sptH, setSptH] = useState("64");
-  // 쿼리 결과 상태
-  const [beaconQueries, setBeaconQueries] = useState<string[]>([]);
+  const [routeQueries, setRouteQueries] = useState<string[]>([]);
   const [spotQueries, setSpotQueries] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [queried, setQueried] = useState(false);
 
-  // 쿼리 생성 함수: 컴포넌트 외부로 이동
-  function makeBeaconQueries(
-    node: FigmaNode | null,
-    prefix: string,
-    startCounter: number,
-    pklSeq: string,
-    pkfSeq: string,
-    spgSeq: string,
-    bcnBattery: number,
-    posFl: string,
-    bcnTp: string,
-    sptW: string,
-    sptH: string,
-  ): { beacon: string[]; spot: string[] } {
-    if (!node || !node.children) return { beacon: [], spot: [] };
-    const beaconsGroup = node.children.find(
-      (child) => (child.type === "FRAME" || child.type === "GROUP") && child.name === "Beacons",
-    );
-    if (!beaconsGroup || !beaconsGroup.children) return { beacon: [], spot: [] };
-    let counter = startCounter;
-    const beacon: string[] = [];
-    const spot: string[] = [];
-    // 최상단 부모(층) 기준
-    const topParent = node;
-    beaconsGroup.children.forEach((child) => {
-      // id 파싱 (예: major-minor)
-      const str = child.name.split(" ");
-      const number = String(counter).padStart(7, "0");
-      const id = prefix + number;
-      counter++;
-      // beacon 쿼리
-      const bcn_seq = id;
-      const bcn_major = str[1];
-      const bcn_minor = str[2];
-      beacon.push(
-        `INSERT INTO tb_svp_beacon (bcn_seq, pkl_seq, pkf_seq, bcn_nm, bcn_ext_cd, bcn_major, bcn_minor, bcn_mac, bcn_uuid, bcn_battery, pos_fl, bcn_tp, bcn_st_updated) VALUES ('${bcn_seq}', '${pklSeq}', '${pkfSeq}', NULL, NULL, '${bcn_major}', '${bcn_minor}', NULL, NULL, ${bcnBattery}, '${posFl}', '${bcnTp}', NOW());`,
-      );
-      // spot 쿼리 (스키마 순서, 타입 맞춤)
-      const ref_seq = id;
-      const spt_tp = "BCN";
-      const spt_st = "01";
-      const spt_w = Number(sptW);
-      const spt_h = Number(sptH);
-      const spg_seq = spgSeq;
-      const spt_rt = 0;
-      // 중심점 계산 (SVG 내부 상대좌표)
-      const { x: cx, y: cy } = getRelativeCenter(child);
-      spot.push(
-        `INSERT INTO tb_msv_spot (spt_seq, spg_seq, ref_seq, spt_tp, spt_st, spt_w, spt_h, spt_rt, spt_pt, spt_ph, spt_pg, created, updated) VALUES (fn_sys_sequence('SPT'), '${spg_seq}', '${ref_seq}', '${spt_tp}', '${spt_st}', ${spt_w}, ${spt_h}, ${spt_rt}, GEOMFROMTEXT('POINT(${cx} ${cy})'), NULL, NULL, NOW(), NOW());`,
-      );
-    });
-    return { beacon, spot };
-  }
-  // 복사 핸들러
-  // Query 버튼 클릭 시 쿼리 생성
   const handleExtract = () => {
-    const result = makeBeaconQueries(
-      selected,
-      prefix,
-      startCounter,
-      pklSeq,
-      pkfSeq,
-      spgSeq,
-      bcnBattery,
-      posFl,
-      bcnTp,
-      sptW,
-      sptH,
-    );
-    setBeaconQueries(result.beacon);
+    const result = makeRouteQueries(selected, prefix, startCounter, pklSeq, pkfSeq, spgSeq, sptW, sptH);
+    setRouteQueries(result.route);
     setSpotQueries(result.spot);
     setQueried(true);
   };
 
-  const handleCopy = (type: "beacon" | "spot" | "all") => {
+  const handleCopy = (type: "route" | "spot" | "all") => {
     let text = "";
-    if (type === "beacon") text = beaconQueries.join("\n");
+    if (type === "route") text = routeQueries.join("\n");
     else if (type === "spot") text = spotQueries.join("\n");
-    else text = [...beaconQueries, ...spotQueries].join("\n");
+    else text = [...routeQueries, ...spotQueries].join("\n");
     if (!text) return;
     const tryClipboard = async () => {
       try {
@@ -149,7 +111,6 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
         setTimeout(() => setCopied(false), 1200);
         return;
       } catch (e) {
-        // fallback
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.style.position = "fixed";
@@ -342,85 +303,6 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
           >
             <label
               className={styles.inputLabel}
-              htmlFor="bcnBattery"
-              style={{ display: "flex", alignItems: "center", gap: 4 }}
-            >
-              배터리
-              {bcnBattery > 0 && <VerifiedIcon size={16} />}
-            </label>
-            <input
-              id="bcnBattery"
-              className={styles.inputBox}
-              type="number"
-              value={bcnBattery}
-              onChange={(e) => setBcnBattery(Number(e.target.value))}
-              style={{ minWidth: 0, width: "100%", maxWidth: 110, height: 28, fontSize: 13, padding: "2px 8px" }}
-            />
-          </div>
-          <div
-            style={{
-              background: "#23232A",
-              borderRadius: 8,
-              padding: "7px 8px",
-              boxShadow: "0 1px 2px 0 rgba(76,222,128,0.05)",
-              maxWidth: 180,
-              margin: "0 auto",
-            }}
-          >
-            <label
-              className={styles.inputLabel}
-              htmlFor="posFl"
-              style={{ display: "flex", alignItems: "center", gap: 4 }}
-            >
-              POS_FL
-              {posFl.trim() && <VerifiedIcon size={16} />}
-            </label>
-            <input
-              id="posFl"
-              className={styles.inputBox}
-              value={posFl}
-              onChange={(e) => setPosFl(e.target.value)}
-              style={{ minWidth: 0, width: "100%", maxWidth: 110, height: 28, fontSize: 13, padding: "2px 8px" }}
-            />
-          </div>
-          <div
-            style={{
-              background: "#23232A",
-              borderRadius: 8,
-              padding: "7px 8px",
-              boxShadow: "0 1px 2px 0 rgba(76,222,128,0.05)",
-              maxWidth: 180,
-              margin: "0 auto",
-            }}
-          >
-            <label
-              className={styles.inputLabel}
-              htmlFor="bcnTp"
-              style={{ display: "flex", alignItems: "center", gap: 4 }}
-            >
-              BCN_TP
-              {bcnTp.trim() && <VerifiedIcon size={16} />}
-            </label>
-            <input
-              id="bcnTp"
-              className={styles.inputBox}
-              value={bcnTp}
-              onChange={(e) => setBcnTp(e.target.value)}
-              style={{ minWidth: 0, width: "100%", maxWidth: 110, height: 28, fontSize: 13, padding: "2px 8px" }}
-            />
-          </div>
-          <div
-            style={{
-              background: "#23232A",
-              borderRadius: 8,
-              padding: "7px 8px",
-              boxShadow: "0 1px 2px 0 rgba(76,222,128,0.05)",
-              maxWidth: 180,
-              margin: "0 auto",
-            }}
-          >
-            <label
-              className={styles.inputLabel}
               htmlFor="sptW"
               style={{ display: "flex", alignItems: "center", gap: 4 }}
             >
@@ -474,10 +356,10 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
               border: "1px solid #4ADE80",
             }}
             onClick={() => {
-              const ids = getBeaconIds();
+              const ids = getRouteIds();
               if (onFlash) onFlash(ids);
             }}
-            disabled={getBeaconIds().length === 0}
+            disabled={getRouteIds().length === 0}
           >
             ✨
           </button>
@@ -486,31 +368,31 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
       {queried && (
         <>
           <div style={{ marginBottom: 8, fontWeight: 600, color: "#4ADE80", fontSize: 14 }}>
-            {beaconQueries.length > 0
-              ? `Count: ${beaconQueries.length} EA`
-              : "Beacons 그룹/프레임의 자식 요소를 쿼리로 변환합니다."}
+            {routeQueries.length > 0
+              ? `Count: ${routeQueries.length} EA`
+              : "Route 그룹/프레임의 자식 요소를 쿼리로 변환합니다."}
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <button
               className={styles.copyButton}
-              onClick={() => handleCopy("beacon")}
-              disabled={beaconQueries.length === 0}
+              onClick={() => handleCopy("route")}
+              disabled={routeQueries.length === 0}
               style={{ fontSize: 11 }}
             >
-              Beacon Copy
+              Route Copy
             </button>
             <button
               className={styles.copyButton}
               onClick={() => handleCopy("spot")}
-              disabled={beaconQueries.length === 0}
+              disabled={spotQueries.length === 0}
               style={{ fontSize: 11 }}
             >
-              Geo Copy
+              Spot Copy
             </button>
             <button
               className={styles.copyButton}
               onClick={() => handleCopy("all")}
-              disabled={beaconQueries.length === 0}
+              disabled={routeQueries.length === 0 && spotQueries.length === 0}
               style={{ fontSize: 11 }}
             >
               All Copy
@@ -531,8 +413,8 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
                 position: "relative",
               }}
             >
-              {beaconQueries.length > 0
-                ? [...beaconQueries, ...spotQueries].join("\n")
+              {routeQueries.length > 0 || spotQueries.length > 0
+                ? [...routeQueries, ...spotQueries].join("\n")
                 : "-- 여기에 쿼리가 표시됩니다."}
             </pre>
             {copied && (
@@ -562,4 +444,4 @@ const BeaconsQueryPanel = ({ selected, onFlash }: BeaconsQueryPanelProps) => {
   );
 };
 
-export default BeaconsQueryPanel;
+export default RouteQueryPanel;

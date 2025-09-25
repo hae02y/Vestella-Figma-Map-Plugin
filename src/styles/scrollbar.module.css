@@ -1,24 +1,24 @@
-.customScrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #4ADE80 #23232A;
-}
+/* scrollbar.module.css - 커스텀 스크롤바 디자인 */
 
-.customScrollbar::-webkit-scrollbar {
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
   width: 8px;
-  background: #23232A;
-  border-radius: 8px;
+  height: 8px;
 }
 
-.customScrollbar::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #4ADE80;
   border-radius: 8px;
-  min-height: 40px;
+  border: 2px solid #23232A;
 }
 
-.customScrollbar::-webkit-scrollbar-thumb:hover {
-  background: #22c55e;
-}
-
-.customScrollbar::-webkit-scrollbar-corner {
+::-webkit-scrollbar-track {
   background: #23232A;
+  border-radius: 8px;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4ADE80 #23232A;
 }

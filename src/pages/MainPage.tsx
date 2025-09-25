@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { View } from "reshaped";
 import RenameButtons from "../components/RenameButtons.js";
 import Message from "../components/Message.js";
-import styles from "./MainPage.module.css";
-import VerifiedIcon from "./VerifiedIcon.js";
 
 interface MainPageProps {
   onNext: () => void;
@@ -17,7 +15,7 @@ type FigmaNode = {
 };
 
 export default function MainPage({ onNext }: MainPageProps) {
-  const [pageName, setPageName] = useState("");
+  let pageName = "";
   const [selectedNode, setSelectedNode] = useState<FigmaNode | null>(null);
   const [children, setChildren] = useState<FigmaNode[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +29,7 @@ export default function MainPage({ onNext }: MainPageProps) {
         setSelectedNode(node);
         setChildren(node?.children || []);
         setError(null);
-        setPageName(event.data.pluginMessage.pageName);
+        pageName = event.data.pluginMessage.pageName;
       }
     };
     window.addEventListener("message", handleMessage);
@@ -60,116 +58,74 @@ export default function MainPage({ onNext }: MainPageProps) {
     setRenameTargetId(null); // 버튼 숨김
   };
 
-  // 이름 규칙 validation 함수
-  function validateChildren(children: FigmaNode[]): string[] {
-    const errors: string[] = [];
-    children.forEach((child) => {
-      if (child.type === "FRAME" || child.type === "GROUP") {
-        if (!/^[A-Z].*s$/.test(child.name)) {
-          errors.push(`${child.name} : 이름은 대문자로 시작하고 s로 끝나야 해요!`);
-        }
-      }
-    });
-    return errors;
-  }
-
-  // 층(1F, 2F, B1, B2 등)인지 검사
-  function isFloorNode(node: FigmaNode | null): boolean {
-    if (!node) return false;
-    // 예: 1F, 2F, 3F, B1, B2, RF 등
-    return /^([1-9][0-9]*F|B[1-9][0-9]*|RF|PH)$/i.test(node.name.trim());
-  }
-
-  const validationErrors = validateChildren(children);
-  const floorValid = isFloorNode(selectedNode);
-  const floorError = selectedNode && !floorValid ? "층을 선택하세요 (예: 1F, 2F, B1, B2, RF 등)" : null;
-  const childrenValid = children
+  // 모든 프레임/그룹 자식 노드가 규칙에 맞는지 검사
+  const allValid = children
     .filter((child) => child.type === "FRAME" || child.type === "GROUP")
     .every((child) => /^[A-Z].*s$/.test(child.name));
-  const canProceed = floorValid && childrenValid && !error;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.inner}>
+    <div
+      style={{
+        width: 600,
+        height: 800,
+        background: "#18181B",
+        display: "flex",
+        boxShadow: "0 4px 24px 0 rgba(0,0,0,0.12)",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <View padding={4}>
           <div>
-            <div className={styles.title}>
-              <h1 className={styles.pageName}>{pageName}</h1>
-
+            <div style={{ color: "#fff", marginBottom: 16, fontWeight: 600, fontSize: 12 }}>
+              <div>{pageName}</div>
               {selectedNode ? (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    Selected Floor : <b className={styles.selected}>{selectedNode.name}</b> ({selectedNode.type})
-                    {floorValid && <VerifiedIcon size={18} />}
+                  <div>
+                    선택된 요소: <b>{selectedNode.name}</b> ({selectedNode.type})
                   </div>
-                  <Message
-                    type={error || validationErrors.length > 0 || floorError ? "error" : "success"}
-                    text={
-                      error
-                        ? error
-                        : floorError
-                          ? floorError
-                          : validationErrors.length > 0
-                            ? validationErrors.join("\n")
-                            : "모든 요소가 정상입니다!"
-                    }
-                  />
-                  <div className={styles.childList} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    Child Element
-                    {childrenValid && children.length > 0 && <VerifiedIcon size={18} />}
-                  </div>
+                  <Message type="success" text={error ?? "저장에 성공했습니다!"} />
+                  <div style={{ marginTop: 12 }}>자식노드:</div>
                   <ul>
                     {children.length > 0 ? (
-                      children.map((child) => {
-                        const isTarget = child.type === "FRAME" || child.type === "GROUP";
-                        const valid = !isTarget || /^[A-Z].*s$/.test(child.name);
-                        const color = isTarget ? (valid ? "#4ADE80" : "#FF5A5A") : "#fff";
-                        return (
-                          <li key={child.id} className={styles.childItem}>
-                            <span
-                              className={styles.childName}
-                              style={{ color, cursor: child.children ? "pointer" : "default" }}
-                              onClick={() => setRenameTargetId(child.id)}
-                            >
-                              {child.name}
-                              <span className={styles.childType}>({child.type})</span>
-                              {renameTargetId === child.id && (
-                                <div>
-                                  <RenameButtons
-                                    onRename={(name: any) => handleChildRename(child.id, name)}
-                                    nodeId={child.id}
-                                  />
-                                </div>
-                              )}
-                            </span>
-                          </li>
-                        );
-                      })
+                      children.map((child) => (
+                        <li key={child.id} style={{ marginBottom: 8, display: "flex", alignItems: "center" }}>
+                          {(() => {
+                            // 이름 규칙: 맨 앞 대문자, 끝 s
+                            const isTarget = child.type === "FRAME" || child.type === "GROUP";
+                            let valid = true;
+                            if (isTarget) {
+                              valid = /^[A-Z].*s$/.test(child.name);
+                            }
+                            const color = isTarget ? (valid ? "#4ADE80" : "#FF5A5A") : "#fff";
+                            return (
+                              <span
+                                style={{ cursor: child.children ? "pointer" : "default", flex: 1, color }}
+                                onClick={() => setRenameTargetId(child.id)}
+                              >
+                                {child.name} <span style={{ color: "#aaa", fontSize: 14 }}>({child.type})</span>
+                                {isTarget && !valid && (
+                                  <span style={{ color: "#FF5A5A", fontSize: 11, marginLeft: 6 }}>
+                                    이름은 대문자로 시작하고 s로 끝나야 해요!
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
+                          {renameTargetId === child.id && (
+                            <div style={{ display: "block" }}>
+                              <RenameButtons
+                                onRename={(name: any) => handleChildRename(child.id, name)}
+                                nodeId={child.id}
+                              />
+                            </div>
+                          )}
+                        </li>
+                      ))
                     ) : (
-                      <li className={styles.noChild}>No Child Elements.</li>
+                      <li style={{ color: "#aaa" }}>자식 노드가 없습니다.</li>
                     )}
                   </ul>
-                  <div style={{ marginTop: 16, textAlign: "right" }}>
-                    <button
-                      className={styles.nextButton}
-                      disabled={!canProceed}
-                      style={{
-                        background: canProceed ? "#4ADE80" : "#23232A",
-                        color: canProceed ? "#18181B" : "#888",
-                        border: "none",
-                        borderRadius: 8,
-                        fontWeight: 700,
-                        fontSize: 16,
-                        padding: "12px 32px",
-                        cursor: canProceed ? "pointer" : "not-allowed",
-                        boxShadow: canProceed ? "0 2px 8px 0 rgba(76,222,128,0.15)" : "none",
-                        transition: "all 0.2s",
-                      }}
-                      onClick={canProceed ? onNext : undefined}
-                    >
-                      Next
-                    </button>
-                  </div>
                 </>
               ) : (
                 <div>Figma에서 그룹 또는 프레임을 선택하세요.</div>

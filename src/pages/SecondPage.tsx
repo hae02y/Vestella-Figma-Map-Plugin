@@ -2,7 +2,11 @@ import React, { useState } from "react";
 
 // 쿼리 추출 패널 컴포넌트 import (아직 없으면 아래에 임시 정의)
 import BeaconsQueryPanel from "../components/BeaconsQueryPanel.js";
-import styles from "./styles/SecondPage.module.css";
+import SlotsQueryPanel from "../components/SlotsQueryPanel.js";
+import RouteQueryPanel from "../components/RouteQueryPanel.js";
+import RoutePathsQueryPanel from "../components/RoutePathsQueryPanel.js";
+import PillarsQueryPanel from "../components/PillarsQueryPanel.js";
+import styles from "../styles/SecondPage.module.css";
 
 type FigmaNode = {
   id: string;
@@ -120,43 +124,77 @@ const SecondPage = ({ onNext }: { onNext?: () => void }) => {
     <div className={styles.container}>
       <div className={styles.inner}>
         <div className={styles.card}>
-          {/* 탭 네비게이션 */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 18, justifyContent: "center" }}>
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  background: activeTab === tab ? "#4ADE80" : "#23232A",
-                  color: activeTab === tab ? "#18181B" : "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  padding: "6px 18px",
-                  cursor: "pointer",
-                  boxShadow: activeTab === tab ? "0 2px 8px 0 rgba(76,222,128,0.15)" : "none",
-                  transition: "all 0.2s",
-                }}
-              >
-                {tab}
-              </button>
-            ))}
+          {/* 탭 네비게이션 드롭다운 */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+            <select
+              value={activeTab}
+              onChange={(e) => {
+                setActiveTab(e.target.value as typeof activeTab);
+              }}
+              style={{
+                background: "#23232A",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontWeight: 700,
+                fontSize: 15,
+                padding: "8px 24px",
+                cursor: "pointer",
+                boxShadow: "0 2px 8px 0 rgba(76,222,128,0.10)",
+                outline: "none",
+                appearance: "none",
+                minWidth: 160,
+                textAlign: "center",
+              }}
+            >
+              {visibleTabs.map((tab) => (
+                <option key={tab} value={tab} style={{ color: "#18181B" }}>
+                  {tab}
+                </option>
+              ))}
+            </select>
           </div>
           {/* 탭별 쿼리 추출 UI */}
           <div style={{ minHeight: 220 }}>
-            {activeTab === "Beacons" && <BeaconsQueryPanel selected={selected} />}
-            {activeTab === "RoutePaths" && (
-              <div style={{ color: "#aaa", marginBottom: 12 }}>RoutePaths 쿼리 추출 UI (구현 예정)</div>
-            )}
-            {activeTab === "Routes" && (
-              <div style={{ color: "#aaa", marginBottom: 12 }}>Routes 쿼리 추출 UI (구현 예정)</div>
-            )}
-            {activeTab === "Pillars" && (
-              <div style={{ color: "#aaa", marginBottom: 12 }}>Pillars 쿼리 추출 UI (구현 예정)</div>
+            {activeTab === "Beacons" && (
+              <BeaconsQueryPanel
+                selected={selected}
+                onFlash={(ids: string[]) => {
+                  parent.postMessage({ pluginMessage: { type: "flash-elements", ids, duration: 3000 } }, "*");
+                }}
+              />
             )}
             {activeTab === "Slots" && (
-              <div style={{ color: "#aaa", marginBottom: 12 }}>Slots 쿼리 추출 UI (구현 예정)</div>
+              <SlotsQueryPanel
+                selected={selected}
+                onFlash={(ids: string[]) => {
+                  parent.postMessage({ pluginMessage: { type: "flash-elements", ids, duration: 3000 } }, "*");
+                }}
+              />
+            )}
+            {activeTab === "RoutePaths" && (
+              <RoutePathsQueryPanel
+                selected={selected}
+                onFlash={(ids: string[]) => {
+                  parent.postMessage({ pluginMessage: { type: "flash-elements", ids, duration: 3000 } }, "*");
+                }}
+              />
+            )}
+            {activeTab === "Routes" && (
+              <RouteQueryPanel
+                selected={selected}
+                onFlash={(ids: string[]) => {
+                  parent.postMessage({ pluginMessage: { type: "flash-elements", ids, duration: 3000 } }, "*");
+                }}
+              />
+            )}
+            {activeTab === "Pillars" && (
+              <PillarsQueryPanel
+                selected={selected}
+                onFlash={(ids: string[]) => {
+                  parent.postMessage({ pluginMessage: { type: "flash-elements", ids, duration: 3000 } }, "*");
+                }}
+              />
             )}
           </div>
           {onNext && (

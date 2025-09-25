@@ -16,19 +16,10 @@ const Message: React.FC<MessageProps> = ({ type = "info", text }) => {
       className="message"
       style={{
         backgroundColor: "#353535ff",
-        padding: "24px 24px",
+        padding: "30px 50px",
         margin: "6px",
         borderRadius: 6,
         boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-        width: 340,
-        maxWidth: 340,
-        minHeight: 40,
-        maxHeight: 80,
-        overflowY: "auto",
-        overflowX: "hidden",
-        scrollbarWidth: "none",
-        msOverflowStyle: "none",
-        position: "relative",
       }}
     >
       <div
@@ -37,14 +28,10 @@ const Message: React.FC<MessageProps> = ({ type = "info", text }) => {
           textAlign: "center",
           fontWeight: 500,
           color,
-          whiteSpace: "pre-line",
         }}
       >
         {text}
       </div>
-      <style>{`
-        .message::-webkit-scrollbar { display: none; }
-      `}</style>
     </div>
   );
 };
