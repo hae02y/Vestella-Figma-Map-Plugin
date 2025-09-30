@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { View } from "reshaped";
 import RenameButtons from "../components/RenameButtons.js";
 import Message from "../components/Message.js";
+import React from "react";
 
 interface MainPageProps {
   onNext: () => void;
@@ -19,26 +20,45 @@ export default function MainPage({ onNext }: MainPageProps) {
   const [selectedNode, setSelectedNode] = useState<FigmaNode | null>(null);
   const [children, setChildren] = useState<FigmaNode[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [nameErrors, setNameErrors] = useState<string[]>([]);
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.pluginMessage && event.data.pluginMessage.type === "selection") {
         const node = event.data.pluginMessage.node as FigmaNode;
-        console.log("[Figma selection node]", node);
         setSelectedNode(node);
         setChildren(node?.children || []);
-        setError(null);
+        // 이름 변경 성공/실패 메시지 처리
+        if (event.data.pluginMessage.success === false) {
+          setError("이름 변경에 실패했습니다.");
+        } else {
+          setError(null);
+        }
         pageName = event.data.pluginMessage.pageName;
       }
     };
     window.addEventListener("message", handleMessage);
-    // Figma에 selection 요청
     parent.postMessage({ pluginMessage: { type: "get-selection" } }, "*");
     return () => {
       window.removeEventListener("message", handleMessage);
     };
   }, []);
+
+  // 이름 규칙 오류 리스트 생성
+  React.useEffect(() => {
+    if (!children || children.length === 0) {
+      setNameErrors([]);
+      return;
+    }
+    const errors: string[] = [];
+    children.forEach((child) => {
+      if ((child.type === "FRAME" || child.type === "GROUP") && !/^[A-Z].*s$/.test(child.name)) {
+        errors.push(`${child.name}: 이름은 대문자로 시작하고 s로 끝나야 해요!`);
+      }
+    });
+    setNameErrors(errors);
+  }, [children]);
 
   const handleNodeClick = (node: FigmaNode) => {
     console.log("[Clicked node]", node);
@@ -66,8 +86,8 @@ export default function MainPage({ onNext }: MainPageProps) {
   return (
     <div
       style={{
-        width: 600,
-        height: 800,
+        width: 400,
+        height: 600,
         background: "#18181B",
         display: "flex",
         boxShadow: "0 4px 24px 0 rgba(0,0,0,0.12)",
@@ -84,7 +104,10 @@ export default function MainPage({ onNext }: MainPageProps) {
                   <div>
                     선택된 요소: <b>{selectedNode.name}</b> ({selectedNode.type})
                   </div>
-                  <Message type="success" text={error ?? "저장에 성공했습니다!"} />
+                  <Message
+                    type={error ? "error" : nameErrors.length > 0 ? "error" : "success"}
+                    text={error ?? (nameErrors.length > 0 ? nameErrors.join("\n") : "모든요소가 정상입니다.")}
+                  />
                   <div style={{ marginTop: 12 }}>자식노드:</div>
                   <ul>
                     {children.length > 0 ? (
@@ -104,11 +127,6 @@ export default function MainPage({ onNext }: MainPageProps) {
                                 onClick={() => setRenameTargetId(child.id)}
                               >
                                 {child.name} <span style={{ color: "#aaa", fontSize: 14 }}>({child.type})</span>
-                                {isTarget && !valid && (
-                                  <span style={{ color: "#FF5A5A", fontSize: 11, marginLeft: 6 }}>
-                                    이름은 대문자로 시작하고 s로 끝나야 해요!
-                                  </span>
-                                )}
                               </span>
                             );
                           })()}

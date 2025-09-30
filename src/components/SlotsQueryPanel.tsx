@@ -68,11 +68,7 @@ const SlotsQueryPanel = ({ selected, onFlash }: SlotsQueryPanelProps) => {
       counter++;
       // tb_svp_parking_slot 쿼리 (DB 스키마 순서/타입/NULL 반영)
       slot.push(
-        `INSERT INTO tb_svp_parking_slot (
-          pks_seq, pkl_seq, pkf_seq, pkg_seq, pks_nm, pks_ext_cd1, pks_ext_cd2, pks_tp, pks_st, pks_fl, pks_theme, pks_car_num, pks_st_updated
-        ) VALUES (
-          '${id}', '${pklSeq}', '${pkfSeq}', NULL, NULL, NULL, NULL, '01', 'NORM', 'AUTO', NULL, NULL, NOW()
-        );`,
+        `INSERT INTO tb_svp_parking_slot (pks_seq, pkl_seq, pkf_seq, pkg_seq, pks_nm, pks_ext_cd1, pks_ext_cd2, pks_tp, pks_st, pks_fl, pks_theme, pks_car_num, pks_st_updated) VALUES ('${id}', '${pklSeq}', '${pkfSeq}', NULL, NULL, NULL, NULL, '01', 'NORM', 'AUTO', NULL, NULL, NOW());`,
       );
       // tb_msv_spot 쿼리 (비콘과 동일)
       const width = child.width ?? 0;
