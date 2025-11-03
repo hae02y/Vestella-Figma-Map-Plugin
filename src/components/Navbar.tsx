@@ -1,13 +1,13 @@
-import React, { useState } from "react";
-import styles from "../styles/Navbar.module.css";
+import React, { useState } from 'react';
+import styles from '../styles/Navbar.module.css';
 import scrollbar from '../styles/scrollbar.module.css';
-import MainPage from "../pages/MainPage.js";
-import SecondPage from "../pages/SecondPage.js";
+import MainPage from '../pages/MainPage.js';
+import SecondPage from '../pages/SecondPage.js';
 
 const steps = [
-  { key: "main", label: "Floor" },
-  { key: "second", label: "Query" },
-  { key: "result", label: "Result" },
+  { key: 'main', label: 'Floor' },
+  { key: 'second', label: 'Query' },
+  { key: 'result', label: 'Result' },
 ];
 
 const Navbar = () => {
@@ -38,12 +38,12 @@ const Navbar = () => {
     return (
       <div
         style={{
-          color: "#fff",
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          color: '#fff',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           fontSize: 24,
           fontWeight: 700,
         }}
@@ -63,8 +63,8 @@ const Navbar = () => {
               className={[
                 styles.button,
                 step === idx ? styles.active : styles.inactive,
-                idx > 0 && !completed[idx] ? styles.disabled : "",
-              ].join(" ")}
+                idx > 0 && !completed[idx] ? styles.disabled : '',
+              ].join(' ')}
               disabled={idx > 0 && !completed[idx]}
               onClick={() => {
                 if (idx === 0 || completed[idx]) setStep(idx);
@@ -76,7 +76,7 @@ const Navbar = () => {
           </div>
         ))}
       </nav>
-      <div className={`${styles.contentArea} ${scrollbar["scrollbar"] || ""}`}>{renderStep()}</div>
+      <div className={`${styles.contentArea} ${scrollbar['scrollbar'] || ''}`}>{renderStep()}</div>
     </div>
   );
 };
