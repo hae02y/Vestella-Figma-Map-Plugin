@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styles from "../styles/Navbar.module.css";
-import scrollbar from "../styles/scrollbar.module.css";
+import scrollbar from '../styles/scrollbar.module.css';
 import MainPage from "../pages/MainPage.js";
 import SecondPage from "../pages/SecondPage.js";
 
@@ -13,7 +13,6 @@ const steps = [
 const Navbar = () => {
   const [step, setStep] = useState(0); // 0: main, 1: second, 2: result
 
-  // 각 단계별 완료 여부 (여기선 임시로 이전 단계 완료 시 true)
   const [completed, setCompleted] = useState([true, true, false]);
 
   // 단계별 페이지 컴포넌트

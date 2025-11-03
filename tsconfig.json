@@ -17,5 +17,5 @@
 		"paths": { "*": ["*"] },
 		"typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
 	},
-	"include": ["src"]
+	"include": ["src", "src/types","next-env.d.ts", "src", "src/types"]
 }

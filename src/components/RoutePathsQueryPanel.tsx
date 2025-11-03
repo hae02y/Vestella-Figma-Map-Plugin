@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import VerifiedIcon from "../pages/VerifiedIcon.js";
 import styles from "../styles/SecondPage.module.css";
-import { FigmaNode } from "./SlotsQueryPanel";
+import { FigmaNode } from "./SlotsQueryPanel.js";
 
 interface RoutePathsQueryPanelProps {
   selected: FigmaNode | null;

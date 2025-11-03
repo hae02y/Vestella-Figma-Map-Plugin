@@ -6,7 +6,7 @@ function getRelativeCenter(node: FigmaNode): { x: number; y: number } {
   };
 }
 import React, { useState } from "react";
-import VerifiedIcon from "../pages/VerifiedIcon";
+import VerifiedIcon from "../pages/VerifiedIcon.js";
 import styles from "../styles/SecondPage.module.css";
 
 type FigmaNode = {

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import VerifiedIcon from "../pages/VerifiedIcon.js";
 import styles from "../styles/SecondPage.module.css";
+import { centerFrom } from "../utils/calculate.js";
 
 // FigmaNode 타입 재사용
 export type FigmaNode = {
@@ -75,8 +76,10 @@ const SlotsQueryPanel = ({ selected, onFlash }: SlotsQueryPanelProps) => {
       const height = child.height ?? 0;
       const centerX = (child.x ?? 0) + width / 2;
       const centerY = (child.y ?? 0) + height / 2;
+
+      const { cx, cy, w, h} = centerFrom(child as SceneNode);
       spot.push(
-        `INSERT INTO tb_msv_spot (spt_seq, spg_seq, ref_seq, spt_tp, spt_st, spt_w, spt_h, spt_rt, spt_pt, spt_ph, spt_pg, created, updated) VALUES ('${id.replace("PKS", "SPT")}', '${spgSeq || pkfSeq}', '${id}', 'SLT', '01', ${width}, ${height}, 0, GEOMFROMTEXT('POINT(${centerX} ${centerY})'), NULL, NULL, NOW(), NOW());`,
+        `INSERT INTO tb_msv_spot (spt_seq, spg_seq, ref_seq, spt_tp, spt_st, spt_w, spt_h, spt_rt, spt_pt, spt_ph, spt_pg, created, updated) VALUES ('${id.replace("PKS", "SPT")}', '${spgSeq || pkfSeq}', '${id}', 'SLT', '01', ${w}, ${h}, 0, GEOMFROMTEXT('POINT(${cx} ${cy})'), NULL, NULL, NOW(), NOW());`,
       );
     });
     return { slot, spot };
